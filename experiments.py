@@ -1,16 +1,24 @@
-# Autores:
-#     Said Valseca - Matricula: ____________
-#     Lorena Antonio - Matricula: ____________
-# Fecha de creacion/modificacion: 16/11/2026
+# Actividad Aspiradoras multiagentes
+# Fecha: 16-Nov-2026
+#  Autores:
+#     A01801372 Said Valseca 
+#     A01801978 Lorena Antonio 
+# Descripcion: Ejecuta experimentos estadisticos
+#              del sistema multiagente de limpieza.
+#              Compara la eficiencia de distintas
+#              cantidades de robots reactivos.
+
 
 import argparse
 import csv
+
 from pathlib import Path
 from statistics import mean, stdev
 
 import matplotlib
 
 matplotlib.use("Agg")
+
 import matplotlib.pyplot as plt
 
 from model import ModeloLimpieza
@@ -18,21 +26,30 @@ from model import ModeloLimpieza
 
 CANTIDADES_AGENTES = (1, 2, 3, 5, 10)
 REPETICIONES = 30
+TIEMPO_MAXIMO = 1000
+SEMILLA_BASE = 2026
+
 CARPETA_RESULTADOS = Path("resultados")
 CARPETA_GRAFICAS = Path("graficas")
 
 
-# Descripcion: Ejecuta un escenario y obtiene las mediciones finales.
+# Descripcion: Ejecuta una simulacion individual
+#              con los parametros proporcionados.
 # Parametros:
-#     ancho: Numero de columnas de la habitacion.
-#     alto: Numero de filas de la habitacion.
-#     numeroAgentes: Numero de robots de limpieza.
-#     porcentajeSuciedad: Porcentaje de celdas sucias al inicio.
-#     tiempoMaximo: Numero maximo de pasos permitidos.
-#     semilla: Valor utilizado para reproducir el escenario.
-# Retorno: Diccionario de estadisticas de ModeloLimpieza.
+#     ancho: Numero de columnas.
+#     alto: Numero de filas.
+#     numeroAgentes: Cantidad de robots.
+#     porcentajeSuciedad: Porcentaje inicial sucio.
+#     tiempoMaximo: Limite de pasos.
+#     semilla: Semilla aleatoria de la simulacion.
+# Retorno: Diccionario de estadisticas finales.
 def ejecutarExperimento(
-    ancho, alto, numeroAgentes, porcentajeSuciedad, tiempoMaximo, semilla
+    ancho,
+    alto,
+    numeroAgentes,
+    porcentajeSuciedad,
+    tiempoMaximo,
+    semilla,
 ):
     modelo = ModeloLimpieza(
         ancho=ancho,
@@ -42,58 +59,175 @@ def ejecutarExperimento(
         tiempoMaximo=tiempoMaximo,
         semilla=semilla,
     )
+
     return modelo.ejecutarSimulacion()
 
 
-# Descripcion: Calcula la desviacion estandar muestral de una serie;
-#              devuelve cero cuando existe una sola observacion.
+# Descripcion: Calcula la desviacion estandar
+#              muestral de una serie de valores.
 # Parametros:
 #     valores: Secuencia de valores numericos.
-# Retorno: Desviacion estandar muestral como numero decimal.
+# Retorno: Desviacion estandar o cero cuando
+#          existen menos de dos observaciones.
 def calcularDesviacion(valores):
-    return stdev(valores) if len(valores) > 1 else 0.0
+    desviacion = 0.0
+
+    if len(valores) > 1:
+        desviacion = stdev(valores)
+
+    return desviacion
 
 
-# Descripcion: Exporta registros tabulares para reproducir el analisis.
+# Descripcion: Guarda registros estadisticos en CSV
+#              para facilitar su revision posterior.
 # Parametros:
-#     archivo: Ruta del archivo CSV de salida.
-#     filas: Lista de diccionarios con columnas consistentes.
+#     archivo: Ruta de salida del archivo CSV.
+#     filas: Lista de diccionarios con los registros.
 # Retorno: Ninguno.
 def guardarCsv(archivo, filas):
-    archivo.parent.mkdir(parents=True, exist_ok=True)
-    if filas:
-        with archivo.open("w", newline="", encoding="utf-8-sig") as salida:
-            escritor = csv.DictWriter(salida, fieldnames=list(filas[0].keys()))
+    archivo.parent.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+
+    if len(filas) > 0:
+        with archivo.open(
+            "w",
+            newline="",
+            encoding="utf-8-sig",
+        ) as salida:
+            escritor = csv.DictWriter(
+                salida,
+                fieldnames=list(filas[0].keys()),
+            )
+
             escritor.writeheader()
             escritor.writerows(filas)
 
 
-# Descripcion: Repite escenarios con la misma suciedad inicial para
-#              comparar las cantidades de agentes de forma equitativa.
+# Descripcion: Resume los indicadores de un grupo
+#              de simulaciones con igual numero
+#              de robots.
 # Parametros:
-#     cantidadesAgentes: Secuencia de numeros de robots a evaluar.
-#     repeticiones: Numero de simulaciones por configuracion.
-#     ancho: Columnas de la habitacion.
-#     alto: Filas de la habitacion.
-#     porcentajeSuciedad: Porcentaje inicial de celdas sucias.
+#     corridasGrupo: Resultados individuales.
+#     numeroAgentes: Cantidad de robots del grupo.
+# Retorno: Diccionario con estadisticas agregadas.
+def resumirGrupo(corridasGrupo, numeroAgentes):
+    exitos = [
+        corrida
+        for corrida in corridasGrupo
+        if corrida["limpiezaCompleta"]
+    ]
+
+    pasos = [
+        corrida["pasosEjecutados"]
+        for corrida in corridasGrupo
+    ]
+
+    movimientos = [
+        corrida["movimientosTotales"]
+        for corrida in corridasGrupo
+    ]
+
+    porcentajes = [
+        corrida["porcentajeLimpieza"]
+        for corrida in corridasGrupo
+    ]
+
+    tiemposExitosos = [
+        corrida["tiempoLimpieza"]
+        for corrida in exitos
+    ]
+
+    repeticiones = len(corridasGrupo)
+
+    tiempoExitosoPromedio = None
+    desviacionTiempoExitoso = None
+
+    if len(tiemposExitosos) > 0:
+        tiempoExitosoPromedio = round(
+            mean(tiemposExitosos),
+            2,
+        )
+
+        desviacionTiempoExitoso = round(
+            calcularDesviacion(tiemposExitosos),
+            2,
+        )
+
+    resumen = {
+        "numeroAgentes": numeroAgentes,
+        "repeticiones": repeticiones,
+        "pasosPromedio": round(mean(pasos), 2),
+        "desviacionPasos": round(
+            calcularDesviacion(pasos),
+            2,
+        ),
+        "movimientosPromedio": round(
+            mean(movimientos),
+            2,
+        ),
+        "desviacionMovimientos": round(
+            calcularDesviacion(movimientos),
+            2,
+        ),
+        "limpiezaPromedio": round(
+            mean(porcentajes),
+            2,
+        ),
+        "desviacionLimpieza": round(
+            calcularDesviacion(porcentajes),
+            2,
+        ),
+        "limpiezasCompletas": len(exitos),
+        "porcentajeExito": round(
+            100.0 * len(exitos) / repeticiones,
+            2,
+        ),
+        "tiempoExitosoPromedio": tiempoExitosoPromedio,
+        "desviacionTiempoExitoso": desviacionTiempoExitoso,
+    }
+
+    return resumen
+
+
+# Descripcion: Ejecuta todas las configuraciones
+#              experimentales y recopila sus datos.
+# Parametros:
+#     cantidadesAgentes: Cantidades de robots a comparar.
+#     repeticiones: Simulaciones por configuracion.
+#     ancho: Numero de columnas.
+#     alto: Numero de filas.
+#     porcentajeSuciedad: Porcentaje inicial sucio.
 #     tiempoMaximo: Limite de pasos por simulacion.
-#     semillaBase: Primera semilla aleatoria de cada grupo.
-#     carpetaResultados: Carpeta en la que se guardan los CSV.
-# Retorno: Lista de resumenes, uno por cantidad de agentes.
+#     semillaBase: Semilla inicial de los experimentos.
+#     carpetaResultados: Carpeta de archivos CSV.
+# Retorno: Lista de resumenes estadisticos.
 def ejecutarExperimentos(
     cantidadesAgentes=CANTIDADES_AGENTES,
     repeticiones=REPETICIONES,
     ancho=10,
     alto=10,
     porcentajeSuciedad=30,
-    tiempoMaximo=500,
-    semillaBase=2026,
+    tiempoMaximo=TIEMPO_MAXIMO,
+    semillaBase=SEMILLA_BASE,
     carpetaResultados=CARPETA_RESULTADOS,
 ):
     if repeticiones < 1:
-        raise ValueError("Debe realizarse al menos una repeticion.")
-    if not cantidadesAgentes or any(cantidad < 1 for cantidad in cantidadesAgentes):
-        raise ValueError("Las cantidades de agentes deben ser positivas.")
+        raise ValueError(
+            "Debe realizarse al menos una repeticion."
+        )
+
+    if (
+        len(cantidadesAgentes) == 0
+        or any(
+            cantidad < 1
+            for cantidad in cantidadesAgentes
+        )
+    ):
+        raise ValueError(
+            "Las cantidades de agentes deben ser positivas."
+        )
 
     corridasRegistradas = []
     resumenes = []
@@ -102,9 +236,10 @@ def ejecutarExperimentos(
         corridasGrupo = []
 
         for numeroRepeticion in range(repeticiones):
-            # Una semilla compartida por repeticion genera la misma
-            # distribucion inicial de suciedad entre grupos de robots.
+            # La misma semilla por repeticion permite
+            # comparar grupos con suciedad inicial igual.
             semilla = semillaBase + numeroRepeticion
+
             estadisticas = ejecutarExperimento(
                 ancho=ancho,
                 alto=alto,
@@ -113,104 +248,161 @@ def ejecutarExperimentos(
                 tiempoMaximo=tiempoMaximo,
                 semilla=semilla,
             )
-            registro = {"repeticion": numeroRepeticion + 1, **estadisticas}
+
+            registro = {
+                "repeticion": numeroRepeticion + 1,
+                **estadisticas,
+            }
+
             corridasRegistradas.append(registro)
             corridasGrupo.append(registro)
 
-        exitos = [corrida for corrida in corridasGrupo if corrida["limpiezaCompleta"]]
-        pasos = [corrida["pasosEjecutados"] for corrida in corridasGrupo]
-        movimientos = [corrida["movimientosTotales"] for corrida in corridasGrupo]
-        porcentajes = [corrida["porcentajeLimpieza"] for corrida in corridasGrupo]
-        tiemposExitosos = [corrida["tiempoLimpieza"] for corrida in exitos]
-
-        resumenes.append(
-            {
-                "numeroAgentes": numeroAgentes,
-                "repeticiones": repeticiones,
-                "pasosPromedio": round(mean(pasos), 2),
-                "desviacionPasos": round(calcularDesviacion(pasos), 2),
-                "movimientosPromedio": round(mean(movimientos), 2),
-                "desviacionMovimientos": round(calcularDesviacion(movimientos), 2),
-                "limpiezaPromedio": round(mean(porcentajes), 2),
-                "desviacionLimpieza": round(calcularDesviacion(porcentajes), 2),
-                "limpiezasCompletas": len(exitos),
-                "porcentajeExito": round(100.0 * len(exitos) / repeticiones, 2),
-                # Solo las corridas exitosas tienen tiempo de limpieza.
-                "tiempoExitosoPromedio": (
-                    round(mean(tiemposExitosos), 2) if tiemposExitosos else None
-                ),
-                "desviacionTiempoExitoso": (
-                    round(calcularDesviacion(tiemposExitosos), 2)
-                    if tiemposExitosos
-                    else None
-                ),
-            }
+        resumen = resumirGrupo(
+            corridasGrupo,
+            numeroAgentes,
         )
 
-    guardarCsv(Path(carpetaResultados) / "corridas.csv", corridasRegistradas)
-    guardarCsv(Path(carpetaResultados) / "resumenes.csv", resumenes)
+        resumenes.append(resumen)
+
+    guardarCsv(
+        Path(carpetaResultados) / "corridas.csv",
+        corridasRegistradas,
+    )
+
+    guardarCsv(
+        Path(carpetaResultados) / "resumenes.csv",
+        resumenes,
+    )
+
     return resumenes
 
 
-# Descripcion: Imprime los indicadores de cada configuracion para
-#              identificar diferencias en tiempo, movimiento y limpieza.
+# Descripcion: Imprime una tabla comparativa de
+#              las configuraciones experimentales.
 # Parametros:
-#     resumenes: Lista de diccionarios de ejecutarExperimentos().
+#     resumenes: Lista de resultados agregados.
 # Retorno: Ninguno.
 def mostrarResultados(resumenes):
-    print("\nResultados de robots de limpieza")
-    print("Robots | Pasos prom. | Mov. prom. | Limpieza % | Exito % | Tiempo exito")
-    print("-" * 75)
+    print()
+    print("RESULTADOS DE ROBOTS DE LIMPIEZA")
+    print("-" * 86)
+
+    print(
+        f"{'Robots':>7} | "
+        f"{'Pasos':>10} | "
+        f"{'Movimientos':>12} | "
+        f"{'Limpieza %':>10} | "
+        f"{'Exito %':>9} | "
+        f"{'Tiempo exito':>12}"
+    )
+
+    print("-" * 86)
+
     for resumen in resumenes:
         tiempoExito = resumen["tiempoExitosoPromedio"]
-        tiempoTexto = f"{tiempoExito:.2f}" if tiempoExito is not None else "N/D"
+
+        tiempoTexto = "N/D"
+
+        if tiempoExito is not None:
+            tiempoTexto = f"{tiempoExito:.2f}"
+
         print(
-            f'{resumen["numeroAgentes"]:>6} | '
-            f'{resumen["pasosPromedio"]:>11.2f} | '
-            f'{resumen["movimientosPromedio"]:>10.2f} | '
-            f'{resumen["limpiezaPromedio"]:>10.2f} | '
-            f'{resumen["porcentajeExito"]:>7.2f} | '
-            f'{tiempoTexto:>12}'
+            f"{resumen['numeroAgentes']:>7} | "
+            f"{resumen['pasosPromedio']:>10.2f} | "
+            f"{resumen['movimientosPromedio']:>12.2f} | "
+            f"{resumen['limpiezaPromedio']:>10.2f} | "
+            f"{resumen['porcentajeExito']:>9.2f} | "
+            f"{tiempoTexto:>12}"
         )
-    print("\nNota: el promedio de pasos incluye corridas limitadas por tiempo.")
-    print("El tiempo de limpieza completa incluye solamente corridas exitosas.")
+
+    print("-" * 86)
+
+    print(
+        "Pasos promedio: incluye simulaciones "
+        "que alcanzaron el limite."
+    )
+
+    print(
+        "Tiempo exito: promedio de las simulaciones "
+        "que limpiaron toda la habitacion."
+    )
 
 
-# Descripcion: Guarda una grafica comparativa con eje horizontal de robots.
+# Descripcion: Genera una grafica de lineas con
+#              resultados por cantidad de robots.
 # Parametros:
-#     resumenes: Resumenes por cantidad de agentes.
-#     campo: Indicador que se utiliza en el eje vertical.
-#     titulo: Titulo explicativo de la grafica.
-#     etiquetaY: Nombre de la variable del eje vertical.
-#     archivo: Ruta de la imagen PNG de salida.
+#     resumenes: Resultados agregados.
+#     campo: Indicador del eje vertical.
+#     titulo: Titulo de la grafica.
+#     etiquetaY: Etiqueta del eje vertical.
+#     archivo: Ruta de salida de la imagen.
 # Retorno: Ninguno.
-def guardarGrafica(resumenes, campo, titulo, etiquetaY, archivo):
-    numerosRobots = [fila["numeroAgentes"] for fila in resumenes]
-    valores = [fila[campo] for fila in resumenes]
-    figura, ejes = plt.subplots(figsize=(8, 4.5))
-    ejes.plot(numerosRobots, valores, marker="o", linewidth=2)
+def guardarGrafica(
+    resumenes,
+    campo,
+    titulo,
+    etiquetaY,
+    archivo,
+):
+    numerosRobots = [
+        fila["numeroAgentes"]
+        for fila in resumenes
+    ]
+
+    valores = [
+        fila[campo]
+        for fila in resumenes
+    ]
+
+    figura, ejes = plt.subplots(
+        figsize=(8, 4.5)
+    )
+
+    ejes.plot(
+        numerosRobots,
+        valores,
+        marker="o",
+        linewidth=2,
+    )
+
     ejes.set_xticks(numerosRobots)
     ejes.set_xlabel("Cantidad de robots")
     ejes.set_ylabel(etiquetaY)
     ejes.set_title(titulo)
-    ejes.grid(axis="y", alpha=0.25)
+
+    ejes.grid(
+        axis="y",
+        alpha=0.25,
+    )
+
     if campo == "limpiezaPromedio":
         ejes.set_ylim(0, 105)
+
     figura.tight_layout()
-    figura.savefig(archivo, dpi=170)
+
+    figura.savefig(
+        archivo,
+        dpi=170,
+    )
+
     plt.close(figura)
 
 
-# Descripcion: Genera las tres graficas solicitadas en la actividad.
+# Descripcion: Genera las graficas comparativas
+#              de tiempo, movimientos y limpieza.
 # Parametros:
-#     resumenes: Lista de resumenes de ejecutarExperimentos().
-# Retorno: Ninguno; las graficas se guardan como imagenes PNG.
+#     resumenes: Resultados de los experimentos.
+# Retorno: Ninguno.
 def generarGraficas(resumenes):
-    CARPETA_GRAFICAS.mkdir(parents=True, exist_ok=True)
+    CARPETA_GRAFICAS.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+
     configuraciones = (
         (
             "pasosPromedio",
-            "Cantidad de robots vs. tiempo de ejecucion",
+            "Cantidad de robots vs. pasos utilizados",
             "Pasos promedio",
             "robots_vs_tiempo.png",
         ),
@@ -222,11 +414,12 @@ def generarGraficas(resumenes):
         ),
         (
             "limpiezaPromedio",
-            "Cantidad de robots vs. porcentaje de limpieza",
+            "Cantidad de robots vs. limpieza final",
             "Porcentaje de limpieza",
             "robots_vs_limpieza.png",
         ),
     )
+
     for campo, titulo, etiquetaY, nombreArchivo in configuraciones:
         guardarGrafica(
             resumenes,
@@ -237,24 +430,63 @@ def generarGraficas(resumenes):
         )
 
 
-# Descripcion: Permite ejecutar las pruebas sin depender de main.py,
-#              manteniendo tambien las funciones para su integracion.
-# Parametros: Ninguno; utiliza argumentos de la terminal.
+# Descripcion: Permite ejecutar experimentos desde
+#              la terminal mediante argumentos.
+# Parametros: Ninguno; lee argumentos de consola.
 # Retorno: Ninguno.
 def main():
     analizador = argparse.ArgumentParser(
-        description="Experimentos de agentes aspiradores con Mesa."
+        description=(
+            "Experimentos del sistema multiagente "
+            "de robots de limpieza."
+        )
     )
-    analizador.add_argument("--repeticiones", type=int, default=REPETICIONES)
-    analizador.add_argument("--ancho", type=int, default=10)
-    analizador.add_argument("--alto", type=int, default=10)
-    analizador.add_argument("--suciedad", type=int, default=30)
-    analizador.add_argument("--tiempo", type=int, default=500)
-    analizador.add_argument("--semilla", type=int, default=2026)
+
     analizador.add_argument(
-        "--agentes", nargs="+", type=int, default=list(CANTIDADES_AGENTES)
+        "--repeticiones",
+        type=int,
+        default=REPETICIONES,
     )
+
+    analizador.add_argument(
+        "--ancho",
+        type=int,
+        default=10,
+    )
+
+    analizador.add_argument(
+        "--alto",
+        type=int,
+        default=10,
+    )
+
+    analizador.add_argument(
+        "--suciedad",
+        type=int,
+        default=30,
+    )
+
+    analizador.add_argument(
+        "--tiempo",
+        type=int,
+        default=TIEMPO_MAXIMO,
+    )
+
+    analizador.add_argument(
+        "--semilla",
+        type=int,
+        default=SEMILLA_BASE,
+    )
+
+    analizador.add_argument(
+        "--agentes",
+        nargs="+",
+        type=int,
+        default=list(CANTIDADES_AGENTES),
+    )
+
     argumentos = analizador.parse_args()
+
     resumenes = ejecutarExperimentos(
         cantidadesAgentes=argumentos.agentes,
         repeticiones=argumentos.repeticiones,
@@ -264,9 +496,14 @@ def main():
         tiempoMaximo=argumentos.tiempo,
         semillaBase=argumentos.semilla,
     )
+
     mostrarResultados(resumenes)
     generarGraficas(resumenes)
-    print("\nArchivos guardados en las carpetas resultados/ y graficas/.")
+
+    print()
+    print("Experimentos finalizados correctamente.")
+    print("Resultados guardados en: resultados/")
+    print("Graficas guardadas en: graficas/")
 
 
 if __name__ == "__main__":

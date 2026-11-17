@@ -1,96 +1,259 @@
-# Autores:
-#     Said Valseca - Matricula: ____________
-#     Lorena Antonio - Matricula: ____________
-# Fecha de creacion/modificacion: 16/11/2026
+# Actividad Aspiradoras multiagentes
+# Fecha: 16-Nov-2026
+#  Autores:
+#     A01801372 Said Valseca 
+#     A01801978 Lorena Antonio 
+# Descripcion: Implementa la interfaz web del sistema
+#              multiagente de robots de limpieza
+#              utilizando Mesa, Solara y Matplotlib.
 
 import solara
-from mesa.visualization import Slider, SolaraViz, SpaceRenderer, make_plot_component
+
+from mesa.visualization import (
+    Slider,
+    SolaraViz,
+    SpaceRenderer,
+    make_plot_component,
+)
 from mesa.visualization.components import AgentPortrayalStyle
+from mesa.visualization.utils import update_counter
 
 from agents import CeldaLimpieza, RobotLimpieza
 from model import ModeloLimpieza
 
 
-# Descripcion: Define un estilo distinto para cada tipo de agente,
-#              permitiendo identificar la suciedad y los robots.
+# Descripcion: Define la apariencia visual de los
+#              robots y las celdas de la habitacion.
 # Parametros:
-#     agente: CeldaLimpieza o RobotLimpieza a representar.
-# Retorno: AgentPortrayalStyle con el estilo de visualizacion.
+#     agente: Instancia del agente que se dibujara.
+# Retorno: Estilo visual del agente.
 def representarAgente(agente):
     if isinstance(agente, RobotLimpieza):
-        return AgentPortrayalStyle(
-            color="#2458a0",
-            marker="circle",
-            size=160,
+        apariencia = AgentPortrayalStyle(
+            color="#2563EB",
+            marker="o",
+            size=110,
             zorder=3,
         )
 
-    if isinstance(agente, CeldaLimpieza):
-        colorCelda = "#e87878" if agente.estaSucia else "#a9dfc6"
-        return AgentPortrayalStyle(
+    elif isinstance(agente, CeldaLimpieza):
+        colorCelda = (
+            "#DC6B50"
+            if agente.estaSucia
+            else "#B8E4C9"
+        )
+
+        apariencia = AgentPortrayalStyle(
             color=colorCelda,
-            marker="square",
-            size=480,
+            marker="s",
+            size=210,
             zorder=1,
         )
 
-    return AgentPortrayalStyle(color="#888888", marker="circle", size=20)
+    else:
+        apariencia = AgentPortrayalStyle(
+            color="#808080",
+            marker="s",
+            size=30,
+        )
+
+    return apariencia
 
 
-# Descripcion: Muestra las estadisticas actuales de la simulacion
-#              para facilitar la interpretacion de las graficas.
+# Descripcion: Configura los ejes de la habitacion.
+# Parametros:
+#     ejes: Ejes de Matplotlib.
+# Retorno: Ninguno.
+def configurarGrafica(ejes):
+    ejes.set_aspect("equal")
+    ejes.set_xticks([])
+    ejes.set_yticks([])
+    ejes.set_facecolor("#F8FAFC")
+
+
+# Descripcion: Muestra los indicadores actuales
+#              del estado de la simulacion.
 # Parametros:
 #     modelo: Instancia activa de ModeloLimpieza.
-# Retorno: Componente Markdown de Solara con los indicadores.
+# Retorno: Componente visual de Solara.
+@solara.component
 def mostrarEstado(modelo):
-    estado = "En ejecucion" if modelo.running else "Finalizada"
-    porcentajeLimpieza = modelo.calcularPorcentajeLimpieza()
+    # Registra la dependencia reactiva con Mesa.
+    # Permite actualizar el panel con cada paso
+    # y cuando se reinicia la simulacion.
+    update_counter.get()
 
-    return solara.Markdown(
-        f"**Estado:** {estado} | "
-        f"**Pasos:** {modelo.pasosEjecutados}/{modelo.tiempoMaximo} | "
-        f"**Limpieza:** {porcentajeLimpieza:.1f}% | "
-        f"**Movimientos:** {modelo.movimientosTotales} | "
-        f"**Celdas sucias:** {len(modelo.celdasSucias)}"
+    porcentajeLimpieza = (
+        modelo.calcularPorcentajeLimpieza()
+    )
+
+    cantidadSucias = len(modelo.celdasSucias)
+
+    if modelo.running:
+        estado = "En ejecucion"
+
+    elif cantidadSucias == 0:
+        estado = "Limpieza completada"
+
+    else:
+        estado = "Tiempo maximo alcanzado"
+
+    solara.Markdown(
+        "### Estadisticas de la simulacion"
+    )
+
+    solara.Markdown(
+        f"**Estado:** {estado}"
+    )
+
+    solara.Markdown(
+        f"**Robots:** {modelo.numeroAgentes}"
+    )
+
+    solara.Markdown(
+        f"**Habitacion:** {modelo.ancho} x {modelo.alto}"
+    )
+
+    solara.Markdown(
+        f"**Pasos ejecutados:** "
+        f"{modelo.pasosEjecutados} / {modelo.tiempoMaximo}"
+    )
+
+    solara.Markdown(
+        f"**Limpieza:** {porcentajeLimpieza:.2f}%"
+    )
+
+    solara.Markdown(
+        f"**Movimientos totales:** "
+        f"{modelo.movimientosTotales}"
+    )
+
+    solara.Markdown(
+        f"**Celdas sucias restantes:** "
+        f"{cantidadSucias}"
+    )
+
+    if modelo.tiempoLimpieza is not None:
+        solara.Markdown(
+            f"**Tiempo de limpieza completa:** "
+            f"{modelo.tiempoLimpieza} pasos"
+        )
+
+
+# Descripcion: Presenta la leyenda de colores
+#              utilizados en la simulacion.
+# Parametros:
+#     modelo: Instancia activa del modelo.
+# Retorno: Componente visual de Solara.
+@solara.component
+def mostrarLeyenda(modelo):
+    # Actualiza la leyenda cuando cambian los
+    # parametros o se reinicia el modelo.
+    update_counter.get()
+
+    solara.Markdown(
+        "### Leyenda"
+    )
+
+    solara.Markdown(
+        "- 🔵 Robot de limpieza\n"
+        "- 🟥 Celda sucia\n"
+        "- 🟩 Celda limpia"
+    )
+
+    solara.Markdown(
+        f"**Suciedad inicial:** "
+        f"{modelo.porcentajeSuciedad}%"
     )
 
 
-# Los nombres de estos parametros coinciden con el constructor del
-# modelo del equipo; Solara los utiliza al reiniciar la simulacion.
+# Parametros configurables de la simulacion.
 PARAMETROS_MODELO = {
-    "ancho": Slider("Ancho (columnas)", value=10, min=1, max=30, step=1),
-    "alto": Slider("Alto (filas)", value=10, min=1, max=30, step=1),
+    "ancho": Slider(
+        "Ancho (columnas)",
+        value=10,
+        min=1,
+        max=30,
+        step=1,
+    ),
+    "alto": Slider(
+        "Alto (filas)",
+        value=10,
+        min=1,
+        max=30,
+        step=1,
+    ),
     "numeroAgentes": Slider(
-        "Numero de robots", value=5, min=1, max=30, step=1
+        "Numero de robots",
+        value=5,
+        min=1,
+        max=30,
+        step=1,
     ),
     "porcentajeSuciedad": Slider(
-        "Celdas inicialmente sucias (%)", value=30, min=0, max=100, step=5
+        "Celdas inicialmente sucias (%)",
+        value=30,
+        min=0,
+        max=100,
+        step=5,
     ),
     "tiempoMaximo": Slider(
-        "Tiempo maximo (pasos)", value=1000, min=1, max=2000, step=1
+        "Tiempo maximo (pasos)",
+        value=1000,
+        min=1,
+        max=5000,
+        step=1,
     ),
-    "semilla": Slider("Semilla aleatoria", value=42, min=0, max=10000, step=1),
+    "semilla": Slider(
+        "Semilla aleatoria",
+        value=42,
+        min=0,
+        max=10000,
+        step=1,
+    ),
 }
 
-# La interfaz usa el mismo modelo y los mismos agentes del equipo.
+
+# Inicializacion del modelo multiagente.
 modeloInicial = ModeloLimpieza()
+
+
+# Configuracion del renderizador Matplotlib.
 renderizador = (
-    SpaceRenderer(modeloInicial, backend="altair")
+    SpaceRenderer(
+        model=modeloInicial,
+        backend="matplotlib",
+    )
     .setup_agents(representarAgente)
     .render()
 )
 
-# SolaraViz proporciona Play/Pause, Step, Reset y los controles del modelo.
-# Ejecutar desde la carpeta del proyecto: python -m solara run app.py
+renderizador.post_process = configurarGrafica
+
+
+# Graficas de seguimiento de la simulacion.
+graficaLimpieza = make_plot_component(
+    "Limpieza (%)",
+    backend="matplotlib",
+)
+
+graficaMovimientos = make_plot_component(
+    "Movimientos",
+    backend="matplotlib",
+)
+
+
+# Interfaz web de Mesa.
 page = SolaraViz(
     model=modeloInicial,
     renderer=renderizador,
     components=[
-        mostrarEstado,
-        make_plot_component("Limpieza (%)", backend="altair"),
-        make_plot_component("Movimientos", backend="altair"),
+        (mostrarEstado, 0),
+        (mostrarLeyenda, 0),
+        graficaLimpieza,
+        graficaMovimientos,
     ],
     model_params=PARAMETROS_MODELO,
-    name="Robots de limpieza reactivos | TC2008B SMA",
+    name="Robots de Limpieza Reactivos | TC2008B SMA",
     play_interval=150,
 )
