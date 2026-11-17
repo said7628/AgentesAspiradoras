@@ -1,11 +1,11 @@
-# Actividad Aspiradoras multiagentes
-# Fecha: 16-Nov-2026
-#  Autores:
-#     A01801372 Said Valseca 
-#     A01801978 Lorena Antonio 
+
 # Descripcion: Implementa la interfaz web del sistema
 #              multiagente de robots de limpieza
 #              utilizando Mesa, Solara y Matplotlib.
+# Autores:
+#     Said Valseca - Matricula: ____________
+#     Lorena Antonio - Matricula: ____________
+# Fecha de creacion/modificacion: 16/11/2026
 
 import solara
 
@@ -16,7 +16,6 @@ from mesa.visualization import (
     make_plot_component,
 )
 from mesa.visualization.components import AgentPortrayalStyle
-from mesa.visualization.utils import update_counter
 
 from agents import CeldaLimpieza, RobotLimpieza
 from model import ModeloLimpieza
@@ -72,17 +71,12 @@ def configurarGrafica(ejes):
 
 
 # Descripcion: Muestra los indicadores actuales
-#              del estado de la simulacion.
+#              de la simulacion.
 # Parametros:
 #     modelo: Instancia activa de ModeloLimpieza.
 # Retorno: Componente visual de Solara.
 @solara.component
 def mostrarEstado(modelo):
-    # Registra la dependencia reactiva con Mesa.
-    # Permite actualizar el panel con cada paso
-    # y cuando se reinicia la simulacion.
-    update_counter.get()
-
     porcentajeLimpieza = (
         modelo.calcularPorcentajeLimpieza()
     )
@@ -140,20 +134,14 @@ def mostrarEstado(modelo):
         )
 
 
-# Descripcion: Presenta la leyenda de colores
-#              utilizados en la simulacion.
+# Descripcion: Explica los colores utilizados
+#              para identificar los agentes.
 # Parametros:
 #     modelo: Instancia activa del modelo.
 # Retorno: Componente visual de Solara.
 @solara.component
 def mostrarLeyenda(modelo):
-    # Actualiza la leyenda cuando cambian los
-    # parametros o se reinicia el modelo.
-    update_counter.get()
-
-    solara.Markdown(
-        "### Leyenda"
-    )
+    solara.Markdown("### Leyenda")
 
     solara.Markdown(
         "- 🔵 Robot de limpieza\n"
@@ -214,7 +202,7 @@ PARAMETROS_MODELO = {
 }
 
 
-# Inicializacion del modelo multiagente.
+# Inicializacion del modelo compartido.
 modeloInicial = ModeloLimpieza()
 
 
@@ -231,7 +219,7 @@ renderizador = (
 renderizador.post_process = configurarGrafica
 
 
-# Graficas de seguimiento de la simulacion.
+# Graficas de las estadisticas de limpieza.
 graficaLimpieza = make_plot_component(
     "Limpieza (%)",
     backend="matplotlib",
@@ -243,7 +231,7 @@ graficaMovimientos = make_plot_component(
 )
 
 
-# Interfaz web de Mesa.
+# Configuracion de la interfaz web.
 page = SolaraViz(
     model=modeloInicial,
     renderer=renderizador,
