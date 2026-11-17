@@ -1,10 +1,11 @@
-
+# Actividad: Agentes Aspiradoras
+# Fecha: 16/11/2026
+# Autores:
+#     A01801372 Said Valseca Figueroa
+#     A01801978 Lorena Antonio Monraga
 # Descripcion: Inicia la interfaz web de Mesa
 #              configurando los recursos JavaScript.
-# Autores:
-#     Said Valseca Figueroa - A01801372
-#     Lorena Antonio Monraga - A01801978
-# Fecha de modificacion: 16/11/2026
+
 
 import mimetypes
 import os

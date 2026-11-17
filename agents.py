@@ -1,10 +1,13 @@
 
+# Actividad: Agentes Aspiradoras
+# Fecha: 16/11/2026
+# Autores:
+#     A01801372 Said Valseca Figueroa
+#     A01801978 Lorena Antonio Monraga
 # Descripcion: Define las celdas y los agentes reactivos
 #              de una simulacion de robots de limpieza.
-# Autores:
-#     Said Valseca - Matricula: ____________
-#     Lorena Antonio - Matricula: ____________
-# Fecha de creacion: 16/11/2026
+
+
 
 from mesa.discrete_space import CellAgent, FixedAgent
 

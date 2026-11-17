@@ -1,8 +1,8 @@
-# Actividad Aspiradoras multiagentes
-# Fecha: 16-Nov-2026
-#  Autores:
-#     A01801372 Said Valseca 
-#     A01801978 Lorena Antonio 
+# Actividad: Agentes Aspiradoras
+# Fecha: 16/11/2026
+# Autores:
+#     A01801372 Said Valseca Figueroa
+#     A01801978 Lorena Antonio Monraga
 # Descripcion: Ejecuta experimentos estadisticos
 #              del sistema multiagente de limpieza.
 #              Compara la eficiencia de distintas

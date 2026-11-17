@@ -1,10 +1,11 @@
-
+# Actividad: Agentes Aspiradoras
+# Fecha: 16/11/2026
+# Autores:
+#     A01801372 Said Valseca Figueroa
+#     A01801978 Lorena Antonio Monraga
 # Descripcion: Prepara el entorno virtual del proyecto
 #              y configura los recursos web de Solara.
-# Autores:
-#     Said Valseca - Matricula: ____________
-#     Lorena Antonio - Matricula: ____________
-# Fecha de creacion/modificacion: 16/11/2026
+
 
 import subprocess
 import sys

@@ -1,10 +1,11 @@
-
+# Actividad: Agentes Aspiradoras
+# Fecha: 16/11/2026
+# Autores:
+#     A01801372 Said Valseca Figueroa
+#     A01801978 Lorena Antonio Monraga
 # Descripcion: Implementa el entorno y las estadisticas
 #              del sistema multiagente de limpieza.
-# Autores:
-#     Said Valseca Figueroa - Matricula: A01801372
-#     Lorena Antonio Monraga- Matricula: ____________
-# Fecha de creacion: 16/11/2026
+
 
 
 from mesa import Model

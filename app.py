@@ -1,11 +1,11 @@
-
+# Actividad: Agentes Aspiradoras
+# Fecha: 16/11/2026
+# Autores:
+#     A01801372 Said Valseca Figueroa
+#     A01801978 Lorena Antonio Monraga
 # Descripcion: Implementa la interfaz web del sistema
 #              multiagente de robots de limpieza
 #              utilizando Mesa, Solara y Matplotlib.
-# Autores:
-#     Said Valseca - Matricula: ____________
-#     Lorena Antonio - Matricula: ____________
-# Fecha de creacion/modificacion: 16/11/2026
 
 import solara
 
